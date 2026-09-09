@@ -2,8 +2,9 @@
 
 import { useApp } from "@/lib/store";
 import { Avatar, Badge, Button, Card, EmptyState, PageHeader } from "@/components/ui";
+import { TaskRow } from "@/components/TaskRow";
 import { formatDate, formatDuration, formatTime } from "@/lib/format";
-import { Clock } from "lucide-react";
+import { Clock, ListChecks } from "lucide-react";
 
 export default function TimePage() {
   const { currentUser } = useApp();
@@ -11,12 +12,17 @@ export default function TimePage() {
 }
 
 function MyTime() {
-  const { currentUser, jobs, timeEntries, clockIn, clockOut } = useApp();
+  const { currentUser, jobs, jobTasks, timeEntries, clockIn, clockOut } = useApp();
   const mine = [...timeEntries]
     .filter((t) => t.employeeId === currentUser.id)
     .sort((a, b) => (a.clockIn < b.clockIn ? 1 : -1));
   const open = mine.find((t) => t.clockOut === null);
   const jobTitle = (id: string | null) => (id ? jobs.find((j) => j.id === id)?.title ?? "Unassigned" : "Unassigned");
+  const taskTitle = (id: string | null) => (id ? jobTasks.find((t) => t.id === id)?.title : null);
+
+  const myTasks = jobTasks
+    .filter((t) => t.assignedEmployeeId === currentUser.id && t.status !== "completed")
+    .sort((a, b) => (jobTitle(a.jobId) < jobTitle(b.jobId) ? -1 : 1));
 
   return (
     <div>
@@ -27,7 +33,12 @@ function MyTime() {
           <div>
             <p className="text-sm font-medium text-slate-500">{open ? "Clocked in since" : "Not clocked in"}</p>
             <p className="text-2xl font-semibold text-slate-900">{open ? formatTime(open.clockIn) : "--:--"}</p>
-            {open && <p className="text-xs text-slate-500">on {jobTitle(open.jobId)}</p>}
+            {open && (
+              <p className="text-xs text-slate-500">
+                on {jobTitle(open.jobId)}
+                {taskTitle(open.taskId) ? ` – ${taskTitle(open.taskId)}` : ""}
+              </p>
+            )}
           </div>
           {open ? (
             <Button variant="danger" onClick={() => clockOut(currentUser.id)}>
@@ -35,10 +46,30 @@ function MyTime() {
             </Button>
           ) : (
             <Button onClick={() => clockIn(currentUser.id, null)}>
-              <Clock size={16} /> Clock in
+              <Clock size={16} /> Clock in (no task)
             </Button>
           )}
         </div>
+      </Card>
+
+      <Card className="mb-6">
+        <div className="border-b border-slate-100 p-4">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+            <ListChecks size={16} className="text-blue-600" /> My tasks
+          </h2>
+        </div>
+        <ul className="divide-y divide-slate-100">
+          {myTasks.length === 0 && (
+            <li className="p-4">
+              <EmptyState text="No open tasks assigned to you." />
+            </li>
+          )}
+          {myTasks.map((task) => (
+            <li key={task.id}>
+              <TaskRow task={task} jobTitle={jobTitle(task.jobId)} />
+            </li>
+          ))}
+        </ul>
       </Card>
 
       <Card>
@@ -57,7 +88,10 @@ function MyTime() {
             return (
               <li key={t.id} className="flex items-center justify-between gap-3 p-4">
                 <div>
-                  <p className="text-sm font-medium text-slate-900">{jobTitle(t.jobId)}</p>
+                  <p className="text-sm font-medium text-slate-900">
+                    {jobTitle(t.jobId)}
+                    {taskTitle(t.taskId) && <span className="text-slate-400"> &middot; {taskTitle(t.taskId)}</span>}
+                  </p>
                   <p className="text-xs text-slate-500">
                     {formatDate(t.date)} &middot; {formatTime(t.clockIn)} -{" "}
                     {t.clockOut ? formatTime(t.clockOut) : "in progress"}
@@ -74,9 +108,10 @@ function MyTime() {
 }
 
 function OwnerTimesheets() {
-  const { users, jobs, timeEntries } = useApp();
+  const { users, jobs, jobTasks, timeEntries } = useApp();
   const employees = users.filter((u) => u.role === "employee");
   const jobTitle = (id: string | null) => (id ? jobs.find((j) => j.id === id)?.title ?? "Unassigned" : "Unassigned");
+  const taskTitle = (id: string | null) => (id ? jobTasks.find((t) => t.id === id)?.title ?? "-" : "-");
 
   return (
     <div>
@@ -121,6 +156,7 @@ function OwnerTimesheets() {
               <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
                 <th className="px-4 py-2 font-medium">Employee</th>
                 <th className="px-4 py-2 font-medium">Job</th>
+                <th className="px-4 py-2 font-medium">Task</th>
                 <th className="px-4 py-2 font-medium">Date</th>
                 <th className="px-4 py-2 font-medium">In</th>
                 <th className="px-4 py-2 font-medium">Out</th>
@@ -138,6 +174,7 @@ function OwnerTimesheets() {
                     <tr key={t.id}>
                       <td className="px-4 py-2 font-medium text-slate-900">{emp?.name ?? "Unknown"}</td>
                       <td className="px-4 py-2 text-slate-600">{jobTitle(t.jobId)}</td>
+                      <td className="px-4 py-2 text-slate-600">{taskTitle(t.taskId)}</td>
                       <td className="px-4 py-2 text-slate-600">{formatDate(t.date)}</td>
                       <td className="px-4 py-2 text-slate-600">{formatTime(t.clockIn)}</td>
                       <td className="px-4 py-2 text-slate-600">{t.clockOut ? formatTime(t.clockOut) : "-"}</td>

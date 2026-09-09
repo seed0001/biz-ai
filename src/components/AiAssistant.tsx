@@ -42,6 +42,7 @@ export function AiAssistant() {
       catalog: app.catalog.map((c) => ({ id: c.id, name: c.name, category: c.category, unit: c.unit, price: c.price })),
       quotes: app.quotes.map((q) => ({ id: q.id, title: q.title, customerId: q.customerId, status: q.status })),
       jobs: app.jobs.map((j) => ({ id: j.id, title: j.title, customerId: j.customerId, status: j.status, scheduledDate: j.scheduledDate })),
+      jobTasks: app.jobTasks.map((t) => ({ id: t.id, jobId: t.jobId, title: t.title, status: t.status, assignedEmployeeId: t.assignedEmployeeId })),
     };
 
     try {

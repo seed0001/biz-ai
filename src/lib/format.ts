@@ -1,4 +1,4 @@
-import type { CallOutcome, CompanySettings, JobStatus, Quote, QuoteLineItem, QuoteStatus } from "./types";
+import type { CallOutcome, CompanySettings, JobStatus, Quote, QuoteLineItem, QuoteStatus, TaskStatus } from "./types";
 
 export function formatCurrency(n: number): string {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -99,6 +99,18 @@ export const CALL_OUTCOME_LABEL: Record<CallOutcome, string> = {
   message_taken: "Message taken",
   escalated: "Escalated",
   missed: "Missed",
+};
+
+export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
+  pending: "Pending",
+  in_progress: "In Progress",
+  completed: "Completed",
+};
+
+export const TASK_STATUS_STYLE: Record<TaskStatus, string> = {
+  pending: "bg-slate-100 text-slate-600 ring-slate-600/20",
+  in_progress: "bg-amber-50 text-amber-700 ring-amber-600/20",
+  completed: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
 };
 
 export const CALL_OUTCOME_STYLE: Record<CallOutcome, string> = {

@@ -36,6 +36,22 @@ export interface Job {
   notes: string;
 }
 
+// The granular checklist of steps needed to actually execute a job — distinct
+// from a quote's line items (which group cost/pricing, not sequence of work).
+// A trim & paint quote might have one "labor" line item, but the task list
+// breaks that into prep, fill nail holes, caulk, prime, coat 1, coat 2, cleanup.
+export type TaskStatus = "pending" | "in_progress" | "completed";
+
+export interface JobTask {
+  id: string;
+  jobId: string;
+  title: string;
+  status: TaskStatus;
+  order: number;
+  estimatedMinutes?: number;
+  assignedEmployeeId?: string | null;
+}
+
 export type QuoteStatus = "draft" | "sent" | "accepted" | "declined";
 
 // A line item splits cost into material $ and labor hours rather than a
@@ -97,6 +113,7 @@ export interface TimeEntry {
   id: string;
   employeeId: string;
   jobId: string | null;
+  taskId: string | null;
   date: string; // ISO date
   clockIn: string; // ISO datetime
   clockOut: string | null; // ISO datetime

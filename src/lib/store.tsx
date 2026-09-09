@@ -16,6 +16,7 @@ import {
   timeEntries as seedTimeEntries,
   callLogs as seedCallLogs,
   catalog as seedCatalog,
+  jobTasks as seedJobTasks,
   defaultSettings,
 } from "./mock-data";
 import type {
@@ -23,6 +24,8 @@ import type {
   Customer,
   Job,
   JobStatus,
+  JobTask,
+  TaskStatus,
   Quote,
   QuoteLineItem,
   QuoteStatus,
@@ -31,6 +34,7 @@ import type {
   CatalogItem,
   CompanySettings,
 } from "./types";
+import { suggestTasksForLineItem } from "./task-templates";
 import { applyAiAction, type AiAction, type AiActionResult } from "./ai-actions";
 
 interface AppState {
@@ -41,11 +45,12 @@ interface AppState {
   timeEntries: TimeEntry[];
   callLogs: CallLog[];
   catalog: CatalogItem[];
+  jobTasks: JobTask[];
   settings: CompanySettings;
   currentUserId: string;
 }
 
-const STORAGE_KEY = "biz-ai-demo-state-v2";
+const STORAGE_KEY = "biz-ai-demo-state-v3";
 
 function loadInitialState(): AppState {
   return {
@@ -56,6 +61,7 @@ function loadInitialState(): AppState {
     timeEntries: seedTimeEntries,
     callLogs: seedCallLogs,
     catalog: seedCatalog,
+    jobTasks: seedJobTasks,
     settings: defaultSettings,
     currentUserId: seedUsers[0].id,
   };
@@ -64,8 +70,19 @@ function loadInitialState(): AppState {
 interface AppContextValue extends AppState {
   currentUser: User;
   setCurrentUserId: (id: string) => void;
-  clockIn: (employeeId: string, jobId: string | null) => void;
+  clockIn: (employeeId: string, jobId: string | null, taskId?: string | null) => void;
   clockOut: (employeeId: string) => void;
+  addTask: (
+    jobId: string,
+    input: { title: string; estimatedMinutes?: number; assignedEmployeeId?: string | null }
+  ) => string;
+  updateTaskStatus: (taskId: string, status: TaskStatus) => void;
+  updateTask: (
+    taskId: string,
+    patch: Partial<Pick<JobTask, "title" | "estimatedMinutes" | "assignedEmployeeId">>
+  ) => void;
+  deleteTask: (taskId: string) => void;
+  generateTasksFromQuote: (jobId: string, quoteId: string) => void;
   updateJobStatus: (jobId: string, status: JobStatus) => void;
   addEmployee: (input: { name: string; title: string; phone: string; email: string }) => void;
   addJob: (input: {
@@ -125,21 +142,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState((s) => ({ ...s, currentUserId: id }));
   }, []);
 
-  const clockIn = useCallback((employeeId: string, jobId: string | null) => {
-    setState((s) => ({
-      ...s,
-      timeEntries: [
-        ...s.timeEntries,
+  const clockIn = useCallback((employeeId: string, jobId: string | null, taskId: string | null = null) => {
+    setState((s) => {
+      const now = new Date().toISOString();
+      // Only one active timer per employee — starting a new one closes
+      // whatever they were previously clocked into.
+      const timeEntries = [
+        ...s.timeEntries.map((t) =>
+          t.employeeId === employeeId && t.clockOut === null ? { ...t, clockOut: now } : t
+        ),
         {
           id: `t-${Date.now()}`,
           employeeId,
           jobId,
-          date: new Date().toISOString().slice(0, 10),
-          clockIn: new Date().toISOString(),
+          taskId,
+          date: now.slice(0, 10),
+          clockIn: now,
           clockOut: null,
         },
-      ],
-    }));
+      ];
+      const jobTasks = taskId
+        ? s.jobTasks.map((task) =>
+            task.id === taskId && task.status === "pending" ? { ...task, status: "in_progress" as TaskStatus } : task
+          )
+        : s.jobTasks;
+      return { ...s, timeEntries, jobTasks };
+    });
   }, []);
 
   const clockOut = useCallback((employeeId: string) => {
@@ -158,6 +186,80 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...s,
       jobs: s.jobs.map((j) => (j.id === jobId ? { ...j, status } : j)),
     }));
+  }, []);
+
+  const addTask = useCallback(
+    (jobId: string, input: { title: string; estimatedMinutes?: number; assignedEmployeeId?: string | null }) => {
+      const id = `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      setState((s) => {
+        const order = s.jobTasks.filter((t) => t.jobId === jobId).length;
+        return {
+          ...s,
+          jobTasks: [
+            ...s.jobTasks,
+            {
+              id,
+              jobId,
+              status: "pending",
+              order,
+              title: input.title,
+              estimatedMinutes: input.estimatedMinutes,
+              assignedEmployeeId: input.assignedEmployeeId ?? null,
+            },
+          ],
+        };
+      });
+      return id;
+    },
+    []
+  );
+
+  const updateTaskStatus = useCallback((taskId: string, status: TaskStatus) => {
+    setState((s) => ({
+      ...s,
+      jobTasks: s.jobTasks.map((t) => (t.id === taskId ? { ...t, status } : t)),
+    }));
+  }, []);
+
+  const updateTask = useCallback(
+    (taskId: string, patch: Partial<Pick<JobTask, "title" | "estimatedMinutes" | "assignedEmployeeId">>) => {
+      setState((s) => ({
+        ...s,
+        jobTasks: s.jobTasks.map((t) => (t.id === taskId ? { ...t, ...patch } : t)),
+      }));
+    },
+    []
+  );
+
+  const deleteTask = useCallback((taskId: string) => {
+    setState((s) => ({ ...s, jobTasks: s.jobTasks.filter((t) => t.id !== taskId) }));
+  }, []);
+
+  // Expands each labor line item on the linked quote into its default step
+  // checklist (see task-templates.ts). Material line items are cost, not
+  // steps, so they're skipped.
+  const generateTasksFromQuote = useCallback((jobId: string, quoteId: string) => {
+    setState((s) => {
+      const quote = s.quotes.find((q) => q.id === quoteId);
+      if (!quote) return s;
+      let order = s.jobTasks.filter((t) => t.jobId === jobId).length;
+      const newTasks: JobTask[] = [];
+      quote.lineItems
+        .filter((item) => item.laborHours > 0)
+        .forEach((item) => {
+          suggestTasksForLineItem(item).forEach((title) => {
+            newTasks.push({
+              id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              jobId,
+              title,
+              status: "pending",
+              order: order++,
+              assignedEmployeeId: null,
+            });
+          });
+        });
+      return { ...s, jobTasks: [...s.jobTasks, ...newTasks] };
+    });
   }, []);
 
   const addEmployee = useCallback(
@@ -330,6 +432,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           addCallLog,
           clockIn,
           clockOut,
+          addTask,
         },
         action
       ),
@@ -347,6 +450,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addCallLog,
       clockIn,
       clockOut,
+      addTask,
     ]
   );
 
@@ -370,6 +474,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCurrentUserId,
     clockIn,
     clockOut,
+    addTask,
+    updateTaskStatus,
+    updateTask,
+    deleteTask,
+    generateTasksFromQuote,
     updateJobStatus,
     addEmployee,
     addJob,

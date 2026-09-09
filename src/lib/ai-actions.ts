@@ -47,6 +47,12 @@ export type AiAction =
       };
     }
   | { type: "UPDATE_JOB_STATUS"; payload: { jobId: string; status: JobStatus } }
+  // The step-by-step checklist for actually executing a job (distinct from
+  // a quote's line items, which are cost groupings, not sequence of work).
+  | {
+      type: "CREATE_JOB_TASK";
+      payload: { jobId: string; title: string; estimatedMinutes?: number; assignedEmployeeId?: string };
+    }
   // The phone/text AI agent logs every call or text it handles this way.
   | { type: "LOG_CALL"; payload: Omit<CallLog, "id"> }
   | { type: "CLOCK_IN"; payload: { employeeId: string; jobId?: string | null } }
@@ -61,6 +67,7 @@ export const AI_ACTION_TYPES = [
   "UPDATE_QUOTE_STATUS",
   "CREATE_JOB",
   "UPDATE_JOB_STATUS",
+  "CREATE_JOB_TASK",
   "LOG_CALL",
   "CLOCK_IN",
   "CLOCK_OUT",
@@ -92,6 +99,10 @@ export interface AiActionContext {
     notes: string;
   }) => string;
   updateJobStatus: (jobId: string, status: JobStatus) => void;
+  addTask: (
+    jobId: string,
+    input: { title: string; estimatedMinutes?: number; assignedEmployeeId?: string | null }
+  ) => string;
   addCallLog: (input: Omit<CallLog, "id">) => string;
   clockIn: (employeeId: string, jobId: string | null) => void;
   clockOut: (employeeId: string) => void;
@@ -109,6 +120,7 @@ export const AI_ACTION_SCHEMA_PROMPT = `Available actions (respond with a JSON a
 - { "type": "UPDATE_QUOTE_STATUS", "payload": { "quoteId": string, "status": "draft"|"sent"|"accepted"|"declined" } }
 - { "type": "CREATE_JOB", "payload": { "title": string, "customerId": string, "scheduledDate": "YYYY-MM-DD", "assignedEmployeeIds": string[], "notes": string } }
 - { "type": "UPDATE_JOB_STATUS", "payload": { "jobId": string, "status": "quoted"|"scheduled"|"in_progress"|"completed"|"invoiced" } }
+- { "type": "CREATE_JOB_TASK", "payload": { "jobId": string, "title": string, "estimatedMinutes": number, "assignedEmployeeId": string } } — one concrete step of work on that job (e.g. "Fill nail holes & caulk gaps"), not a cost line item.
 - { "type": "LOG_CALL", "payload": { "customerName": string, "customerPhone": string, "channel": "call"|"text", "startedAt": ISO datetime string, "durationSec": number, "outcome": "booked"|"message_taken"|"escalated"|"missed", "summary": string, "transcript": [{ "from": "ai"|"customer", "text": string }] } }
 - { "type": "CLOCK_IN", "payload": { "employeeId": string, "jobId": string|null } }
 - { "type": "CLOCK_OUT", "payload": { "employeeId": string } }
@@ -242,6 +254,22 @@ export function applyAiAction(ctx: AiActionContext, action: AiAction): AiActionR
       }
       ctx.updateJobStatus(action.payload.jobId, action.payload.status);
       return ok(`Marked job ${action.payload.jobId} as ${action.payload.status}.`);
+    }
+
+    case "CREATE_JOB_TASK": {
+      if (!ctx.jobs.some((j) => j.id === action.payload.jobId)) {
+        return fail(`No job with id ${action.payload.jobId}.`);
+      }
+      if (!action.payload.title?.trim()) return fail("Task needs a title.");
+      if (action.payload.assignedEmployeeId && !ctx.users.some((u) => u.id === action.payload.assignedEmployeeId)) {
+        return fail(`No employee with id ${action.payload.assignedEmployeeId}.`);
+      }
+      const id = ctx.addTask(action.payload.jobId, {
+        title: action.payload.title,
+        estimatedMinutes: action.payload.estimatedMinutes,
+        assignedEmployeeId: action.payload.assignedEmployeeId ?? null,
+      });
+      return ok(`Added task "${action.payload.title}" to job ${action.payload.jobId} (${id}).`);
     }
 
     case "LOG_CALL": {

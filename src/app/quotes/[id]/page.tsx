@@ -32,6 +32,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
     updateQuoteRates,
     addQuoteItemFromCatalog,
   } = useApp();
+  const [pickedCatalogId, setPickedCatalogId] = useState(catalog[0]?.id ?? "");
 
   const found = quotes.find((q) => q.id === id);
   if (!found) return notFound();
@@ -40,8 +41,6 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
 
   const customer = customers.find((c) => c.id === quote.customerId);
   const linkedJob = jobs.find((j) => j.quoteId === quote.id);
-
-  const [pickedCatalogId, setPickedCatalogId] = useState(catalog[0]?.id ?? "");
 
   const laborRate = quote.laborRate ?? settings.defaultLaborRate;
   const markupPercent = quote.markupPercent ?? settings.defaultMarkupPercent;

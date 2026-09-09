@@ -2,6 +2,7 @@ import type {
   User,
   Customer,
   Job,
+  JobTask,
   Quote,
   TimeEntry,
   CallLog,
@@ -220,6 +221,13 @@ export const customers: Customer[] = [
     phone: "(555) 220-3321",
     email: "owen.marsh@example.com",
   },
+  {
+    id: "c-6",
+    name: "Marlowe Fisher",
+    address: "241 Elm Ct, Riverton",
+    phone: "(555) 220-6602",
+    email: "marlowe.fisher@example.com",
+  },
 ];
 
 export const quotes: Quote[] = [
@@ -282,6 +290,20 @@ export const quotes: Quote[] = [
       { id: "li-12", name: "Framing lumber & fasteners", category: "Materials", unit: "package", quantity: 1, materialCost: 420, laborHours: 0, catalogId: "cat-6" },
     ],
   },
+  {
+    id: "q-1006",
+    title: "Living room trim & paint",
+    customerId: "c-6",
+    status: "accepted",
+    createdAt: "2026-09-01",
+    jobId: "j-2006",
+    lineItems: [
+      { id: "li-13", name: "Baseboard replacement", category: "Labor", unit: "hour", quantity: 10, materialCost: 0, laborHours: 1 },
+      { id: "li-14", name: "Framing lumber & fasteners", category: "Materials", unit: "package", quantity: 1, materialCost: 210, laborHours: 0, catalogId: "cat-6" },
+      { id: "li-15", name: "Interior wall paint", category: "Labor", unit: "hour", quantity: 14, materialCost: 0, laborHours: 1 },
+      { id: "li-16", name: "Interior paint, 5 gal", category: "Materials", unit: "each", quantity: 1, materialCost: 145, laborHours: 0, catalogId: "cat-7" },
+    ],
+  },
 ];
 
 export const jobs: Job[] = [
@@ -333,31 +355,69 @@ export const jobs: Job[] = [
     assignedEmployeeIds: ["u-sam"],
     notes: "Invoice sent 8/30, due 9/13.",
   },
+  {
+    id: "j-2006",
+    title: "Living room trim & paint",
+    customerId: "c-6",
+    status: "in_progress",
+    scheduledDate: "2026-09-08",
+    assignedEmployeeIds: ["u-dana", "u-sam"],
+    quoteId: "q-1006",
+    notes: "Customer wants baseboards swapped to a taller profile before painting.",
+  },
 ];
 
 const today = "2026-09-08";
+
+// The task checklist a quote's labor line items expand into once there's a
+// job to execute — see src/lib/task-templates.ts. Material line items don't
+// get tasks (they're cost, not steps); only labor items do.
+export const jobTasks: JobTask[] = [
+  // j-2001 Kitchen remodel — from "Cabinet installation" + "Sink & fixture install"
+  { id: "task-c1", jobId: "j-2001", title: "Remove old cabinets", status: "completed", order: 0, assignedEmployeeId: "u-dana" },
+  { id: "task-c2", jobId: "j-2001", title: "Install cabinet boxes", status: "completed", order: 1, assignedEmployeeId: "u-dana" },
+  { id: "task-c3", jobId: "j-2001", title: "Install doors & hardware", status: "pending", order: 2, assignedEmployeeId: "u-dana" },
+  { id: "task-c4", jobId: "j-2001", title: "Final adjustment & cleanup", status: "pending", order: 3, assignedEmployeeId: null },
+  { id: "task-c5", jobId: "j-2001", title: "Sink & fixture install", status: "completed", order: 4, assignedEmployeeId: "u-sam" },
+
+  // j-2006 Living room trim & paint — from "Baseboard replacement" + "Interior wall paint"
+  { id: "task-t1", jobId: "j-2006", title: "Remove old trim", status: "completed", order: 0, assignedEmployeeId: "u-dana" },
+  { id: "task-t2", jobId: "j-2006", title: "Fill nail holes & caulk gaps", status: "completed", order: 1, assignedEmployeeId: "u-dana" },
+  { id: "task-t3", jobId: "j-2006", title: "Install new trim", status: "in_progress", order: 2, assignedEmployeeId: "u-dana" },
+  { id: "task-t4", jobId: "j-2006", title: "Caulk & touch up", status: "pending", order: 3, assignedEmployeeId: "u-dana" },
+  { id: "task-t5", jobId: "j-2006", title: "Paint/finish trim", status: "pending", order: 4, assignedEmployeeId: null },
+  { id: "task-t6", jobId: "j-2006", title: "Prep & protect surfaces", status: "completed", order: 5, assignedEmployeeId: "u-sam" },
+  { id: "task-t7", jobId: "j-2006", title: "Patch and sand", status: "in_progress", order: 6, assignedEmployeeId: "u-sam" },
+  { id: "task-t8", jobId: "j-2006", title: "Prime", status: "pending", order: 7, assignedEmployeeId: "u-sam" },
+  { id: "task-t9", jobId: "j-2006", title: "Paint - coat 1", status: "pending", order: 8, assignedEmployeeId: null },
+  { id: "task-t10", jobId: "j-2006", title: "Paint - coat 2", status: "pending", order: 9, assignedEmployeeId: null },
+  { id: "task-t11", jobId: "j-2006", title: "Clean up", status: "pending", order: 10, assignedEmployeeId: null },
+];
 
 export const timeEntries: TimeEntry[] = [
   {
     id: "t-1",
     employeeId: "u-dana",
     jobId: "j-2001",
+    taskId: "task-c2",
     date: today,
-    clockIn: `${today}T08:02:00`,
-    clockOut: null,
+    clockIn: `${today}T07:00:00`,
+    clockOut: `${today}T07:50:00`,
   },
   {
     id: "t-2",
     employeeId: "u-sam",
     jobId: "j-2001",
+    taskId: "task-c5",
     date: today,
     clockIn: `${today}T08:10:00`,
-    clockOut: null,
+    clockOut: `${today}T09:00:00`,
   },
   {
     id: "t-3",
     employeeId: "u-chris",
     jobId: "j-2003",
+    taskId: null,
     date: "2026-09-03",
     clockIn: "2026-09-03T09:00:00",
     clockOut: "2026-09-03T11:30:00",
@@ -366,6 +426,7 @@ export const timeEntries: TimeEntry[] = [
     id: "t-4",
     employeeId: "u-dana",
     jobId: "j-2002",
+    taskId: null,
     date: "2026-09-05",
     clockIn: "2026-09-05T07:45:00",
     clockOut: "2026-09-05T15:50:00",
@@ -374,9 +435,55 @@ export const timeEntries: TimeEntry[] = [
     id: "t-5",
     employeeId: "u-sam",
     jobId: "j-2005",
+    taskId: null,
     date: "2026-08-29",
     clockIn: "2026-08-29T08:00:00",
     clockOut: "2026-08-29T12:15:00",
+  },
+  {
+    id: "t-6",
+    employeeId: "u-dana",
+    jobId: "j-2006",
+    taskId: "task-t1",
+    date: today,
+    clockIn: `${today}T08:00:00`,
+    clockOut: `${today}T08:40:00`,
+  },
+  {
+    id: "t-7",
+    employeeId: "u-dana",
+    jobId: "j-2006",
+    taskId: "task-t2",
+    date: today,
+    clockIn: `${today}T08:40:00`,
+    clockOut: `${today}T09:15:00`,
+  },
+  {
+    id: "t-8",
+    employeeId: "u-dana",
+    jobId: "j-2006",
+    taskId: "task-t3",
+    date: today,
+    clockIn: `${today}T09:15:00`,
+    clockOut: null,
+  },
+  {
+    id: "t-9",
+    employeeId: "u-sam",
+    jobId: "j-2006",
+    taskId: "task-t6",
+    date: today,
+    clockIn: `${today}T08:45:00`,
+    clockOut: `${today}T09:20:00`,
+  },
+  {
+    id: "t-10",
+    employeeId: "u-sam",
+    jobId: "j-2006",
+    taskId: "task-t7",
+    date: today,
+    clockIn: `${today}T09:20:00`,
+    clockOut: null,
   },
 ];
 
