@@ -13,7 +13,7 @@ export function Modal({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:rounded-2xl">
+      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl">
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
           <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
@@ -38,9 +38,30 @@ export function Field({ label, children }: { label: string; children: ReactNode 
 export const inputClass =
   "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
 
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
+const CARD_SHADOWS = {
+  sm: "shadow-sm",
+  md: "shadow-md",
+  lg: "shadow-lg",
+  xl: "shadow-xl",
+} as const;
+
+export function Card({
+  children,
+  className = "",
+  shadow = "md",
+  interactive = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  shadow?: keyof typeof CARD_SHADOWS;
+  interactive?: boolean;
+}) {
   return (
-    <div className={`rounded-xl border border-slate-200 bg-white shadow-sm ${className}`}>
+    <div
+      className={`rounded-xl border border-slate-200 bg-white ${CARD_SHADOWS[shadow]} ${
+        interactive ? "transition-shadow duration-200 hover:shadow-lg" : ""
+      } ${className}`}
+    >
       {children}
     </div>
   );
@@ -86,7 +107,7 @@ export function StatCard({
   hint?: string;
 }) {
   return (
-    <Card className="p-4">
+    <Card className="p-4" interactive>
       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
       <p className="mt-1 text-2xl font-semibold text-slate-900">{value}</p>
       {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
@@ -120,7 +141,7 @@ export function Avatar({ name, color, size = 32 }: { name: string; color: string
     .toUpperCase();
   return (
     <div
-      className="flex shrink-0 items-center justify-center rounded-full font-medium text-white"
+      className="flex shrink-0 items-center justify-center rounded-full font-medium text-white shadow-sm"
       style={{ backgroundColor: color, width: size, height: size, fontSize: size * 0.4 }}
     >
       {initials}
@@ -135,13 +156,13 @@ export function Button({
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "danger" }) {
   const styles = {
-    primary: "bg-blue-600 text-white hover:bg-blue-700",
-    secondary: "bg-white text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50",
-    danger: "bg-rose-600 text-white hover:bg-rose-700",
+    primary: "bg-blue-600 text-white shadow-sm hover:bg-blue-700 hover:shadow-md active:shadow-sm",
+    secondary: "bg-white text-slate-700 ring-1 ring-inset ring-slate-300 shadow-sm hover:bg-slate-50 hover:shadow-md active:shadow-sm",
+    danger: "bg-rose-600 text-white shadow-sm hover:bg-rose-700 hover:shadow-md active:shadow-sm",
   };
   return (
     <button
-      className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${styles[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none ${styles[variant]} ${className}`}
       {...props}
     >
       {children}

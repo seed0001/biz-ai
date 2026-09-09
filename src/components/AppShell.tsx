@@ -62,9 +62,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-slate-50">
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 shrink-0 border-r border-slate-200 bg-white md:flex md:flex-col">
+      <aside className="hidden w-60 shrink-0 border-r border-slate-200 bg-white shadow-[2px_0_8px_-2px_rgba(15,23,42,0.06)] md:flex md:flex-col">
         <div className="flex h-16 items-center gap-2 border-b border-slate-200 px-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white shadow-sm">
             IC
           </div>
           <span className="truncate text-sm font-semibold text-slate-900">{settings.companyName}</span>
@@ -123,7 +123,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar */}
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-6">
+        <header className="relative z-20 flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm md:px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileMenuOpen(true)}
@@ -131,7 +131,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               <Menu size={20} />
             </button>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white md:hidden">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white shadow-sm md:hidden">
               IC
             </div>
           </div>
@@ -141,7 +141,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="relative">
               <button
                 onClick={() => setMenuOpen((v) => !v)}
-                className="flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-1.5 hover:bg-slate-50"
+                className="flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-1.5 shadow-sm transition-shadow duration-150 hover:bg-slate-50 hover:shadow-md"
               >
                 <Avatar name={currentUser.name} color={currentUser.color} size={28} />
                 <span className="hidden text-left sm:block">
@@ -153,7 +153,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {menuOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                  <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
                     <div className="border-b border-slate-100 px-3 py-2">
                       <p className="truncate text-sm font-medium text-slate-900">{currentUser.name}</p>
                       <p className="truncate text-xs text-slate-500">{currentUser.email}</p>
@@ -179,7 +179,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Mobile bottom tab bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-slate-200 bg-white md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-slate-200 bg-white shadow-[0_-4px_12px_-4px_rgba(15,23,42,0.08)] md:hidden">
         {mobileNav.map((item) => {
           const active = pathname === item.href;
           return (

@@ -105,7 +105,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
               key={s}
               onClick={() => updateQuoteStatus(quote.id, s)}
               className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                quote.status === s ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                quote.status === s ? "bg-blue-600 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
               {QUOTE_STATUS_LABEL[s]}

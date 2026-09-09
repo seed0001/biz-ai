@@ -74,7 +74,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 key={s}
                 onClick={() => updateJobStatus(job.id, s)}
                 className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                  job.status === s ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  job.status === s ? "bg-blue-600 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
                 {JOB_STATUS_LABEL[s]}

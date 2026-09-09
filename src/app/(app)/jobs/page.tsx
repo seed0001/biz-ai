@@ -156,7 +156,7 @@ function NewJobModal({
                   )
                 }
                 className={`rounded-full px-3 py-1 text-xs font-medium ${
-                  active ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
+                  active ? "bg-blue-600 text-white shadow-sm" : "bg-slate-100 text-slate-600"
                 }`}
               >
                 {e.name}

@@ -52,7 +52,7 @@ export function TaskRow({ task, jobTitle }: { task: JobTask; jobTitle?: string }
                   key={s}
                   onClick={() => updateTaskStatus(task.id, s)}
                   className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                    task.status === s ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    task.status === s ? "bg-blue-600 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}
                 >
                   {TASK_STATUS_LABEL[s]}

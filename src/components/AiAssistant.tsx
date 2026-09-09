@@ -73,7 +73,7 @@ export function AiAssistant() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+        className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm font-medium text-slate-600 shadow-sm transition-shadow duration-150 hover:bg-slate-50 hover:shadow-md"
         title="Ask the AI assistant"
       >
         <Sparkles size={16} className="text-blue-600" />
