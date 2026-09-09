@@ -1,8 +1,117 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/lib/store";
 import { Badge, Card, Field, OwnerOnlyNotice, PageHeader, inputClass } from "@/components/ui";
 import type { CompanySettings } from "@/lib/types";
+import type { ModelOption } from "@/app/api/models/route";
+
+function formatPerM(perM: number): string {
+  if (perM === 0) return "free";
+  if (perM < 0.01) return `$${perM.toFixed(4)}`;
+  return `$${perM.toFixed(2)}`;
+}
+
+function modelPriceLabel(m: ModelOption): string {
+  if (m.free) return "free";
+  return `${formatPerM(m.promptPerM)} in / ${formatPerM(m.completionPerM)} out per 1M tokens`;
+}
+
+function ModelPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  const [models, setModels] = useState<ModelOption[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/models")
+      .then(async (r) => {
+        const data = await r.json();
+        if (cancelled) return;
+        if (!r.ok) {
+          setError(data.error || "Could not load models.");
+          return;
+        }
+        setModels(data.models as ModelOption[]);
+      })
+      .catch((e) => !cancelled && setError((e as Error).message));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filtered = useMemo(() => {
+    if (!models) return [];
+    const q = filter.trim().toLowerCase();
+    const list = q
+      ? models.filter((m) => m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q))
+      : models;
+    // Keep the current selection visible even if it's filtered out.
+    if (value && !list.some((m) => m.id === value)) {
+      const current = models.find((m) => m.id === value);
+      if (current) return [current, ...list];
+    }
+    return list;
+  }, [models, filter, value]);
+
+  const selected = models?.find((m) => m.id === value);
+
+  if (error) {
+    return (
+      <div className="space-y-2">
+        <p className="text-xs text-rose-600">
+          Couldn&apos;t load the OpenRouter model list ({error}). Enter a model id manually.
+        </p>
+        <input
+          className={inputClass}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="e.g. anthropic/claude-3.5-haiku"
+        />
+      </div>
+    );
+  }
+
+  if (!models) {
+    return <p className="text-xs text-slate-500">Loading models from OpenRouter…</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      <input
+        className={inputClass}
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+        placeholder={`Filter ${models.length} models…`}
+      />
+      <select className={inputClass} value={value} onChange={(e) => onChange(e.target.value)}>
+        {filtered.map((m) => (
+          <option key={m.id} value={m.id}>
+            {m.name} — {modelPriceLabel(m)}
+          </option>
+        ))}
+      </select>
+      {selected && (
+        <p className="text-xs text-slate-500">
+          <span className="font-medium text-slate-700">{selected.id}</span>
+          {" · "}
+          {selected.free
+            ? "Free model"
+            : `${formatPerM(selected.promptPerM)} per 1M input tokens, ${formatPerM(
+                selected.completionPerM
+              )} per 1M output tokens`}
+          {selected.contextLength > 0 && ` · ${selected.contextLength.toLocaleString()} token context`}
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const { currentUser, settings, updateSettings } = useApp();
@@ -85,17 +194,10 @@ export default function SettingsPage() {
             next request, no restart needed.
           </p>
           <Field label="OpenRouter model">
-            <select
-              className={inputClass}
+            <ModelPicker
               value={settings.openRouterModel}
-              onChange={(e) => set("openRouterModel", e.target.value)}
-            >
-              <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (free)</option>
-              <option value="google/gemini-2.0-flash-lite:free">Gemini 2.0 Flash Lite (free)</option>
-              <option value="deepseek/deepseek-chat:free">DeepSeek Chat (free)</option>
-              <option value="anthropic/claude-3.5-haiku">Claude 3.5 Haiku (paid)</option>
-              <option value="openai/gpt-4o-mini">GPT-4o mini (paid)</option>
-            </select>
+              onChange={(id) => set("openRouterModel", id)}
+            />
           </Field>
         </Card>
 
