@@ -12,6 +12,7 @@ import {
   Users,
   Clock,
   PhoneCall,
+  BarChart3,
   Settings,
   Menu,
   X,
@@ -38,6 +39,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/schedule", label: "Schedule", icon: CalendarDays },
   { href: "/time", label: "Time", icon: Clock },
   { href: "/team", label: "Team", icon: Users, ownerOnly: true },
+  { href: "/analytics", label: "Analytics", icon: BarChart3, ownerOnly: true },
   { href: "/ai-line", label: "AI Line", icon: PhoneCall, ownerOnly: true },
   { href: "/settings", label: "Settings", icon: Settings, ownerOnly: true },
 ];

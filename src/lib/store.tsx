@@ -50,7 +50,7 @@ interface AppState {
   currentUserId: string;
 }
 
-const STORAGE_KEY = "biz-ai-demo-state-v3";
+const STORAGE_KEY = "biz-ai-demo-state-v4";
 
 function loadInitialState(): AppState {
   return {
@@ -217,7 +217,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateTaskStatus = useCallback((taskId: string, status: TaskStatus) => {
     setState((s) => ({
       ...s,
-      jobTasks: s.jobTasks.map((t) => (t.id === taskId ? { ...t, status } : t)),
+      jobTasks: s.jobTasks.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              status,
+              completedAt: status === "completed" ? new Date().toISOString().slice(0, 10) : undefined,
+            }
+          : t
+      ),
     }));
   }, []);
 

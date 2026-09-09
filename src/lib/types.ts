@@ -50,6 +50,7 @@ export interface JobTask {
   order: number;
   estimatedMinutes?: number;
   assignedEmployeeId?: string | null;
+  completedAt?: string; // ISO date stamped when status transitions to "completed" — drives analytics
 }
 
 export type QuoteStatus = "draft" | "sent" | "accepted" | "declined";

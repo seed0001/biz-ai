@@ -365,6 +365,62 @@ export const jobs: Job[] = [
     quoteId: "q-1006",
     notes: "Customer wants baseboards swapped to a taller profile before painting.",
   },
+  // Completed jobs from the last three weeks — history for the Analytics page.
+  // No linked quotes; these exist to give hours/task data real time depth.
+  {
+    id: "h-2007",
+    title: "Trim replacement - Unit 4",
+    customerId: "c-4",
+    status: "completed",
+    scheduledDate: "2026-08-18",
+    assignedEmployeeIds: ["u-dana", "u-sam"],
+    notes: "Rental turnover, standard trim swap.",
+  },
+  {
+    id: "h-2008",
+    title: "Guest room paint refresh",
+    customerId: "c-2",
+    status: "completed",
+    scheduledDate: "2026-08-20",
+    assignedEmployeeIds: ["u-sam", "u-chris"],
+    notes: "Two-coat repaint before guests arrive.",
+  },
+  {
+    id: "h-2009",
+    title: "Cabinet refresh - break room",
+    customerId: "c-3",
+    status: "completed",
+    scheduledDate: "2026-08-25",
+    assignedEmployeeIds: ["u-dana", "u-sam"],
+    notes: "Swapped break room cabinet boxes and hardware.",
+  },
+  {
+    id: "h-2010",
+    title: "Trim replacement - Unit 7",
+    customerId: "c-4",
+    status: "completed",
+    scheduledDate: "2026-08-27",
+    assignedEmployeeIds: ["u-dana", "u-sam"],
+    notes: "Same scope as Unit 4, next building over.",
+  },
+  {
+    id: "h-2011",
+    title: "Unit turnover paint - Unit 9",
+    customerId: "c-4",
+    status: "completed",
+    scheduledDate: "2026-09-02",
+    assignedEmployeeIds: ["u-sam", "u-chris"],
+    notes: "Turnover repaint, two coats.",
+  },
+  {
+    id: "h-2012",
+    title: "Outlet & panel check",
+    customerId: "c-5",
+    status: "completed",
+    scheduledDate: "2026-09-04",
+    assignedEmployeeIds: ["u-chris"],
+    notes: "Routine safety check, replaced two outlets.",
+  },
 ];
 
 const today = "2026-09-08";
@@ -374,27 +430,71 @@ const today = "2026-09-08";
 // get tasks (they're cost, not steps); only labor items do.
 export const jobTasks: JobTask[] = [
   // j-2001 Kitchen remodel — from "Cabinet installation" + "Sink & fixture install"
-  { id: "task-c1", jobId: "j-2001", title: "Remove old cabinets", status: "completed", order: 0, assignedEmployeeId: "u-dana" },
-  { id: "task-c2", jobId: "j-2001", title: "Install cabinet boxes", status: "completed", order: 1, assignedEmployeeId: "u-dana" },
+  { id: "task-c1", jobId: "j-2001", title: "Remove old cabinets", status: "completed", order: 0, assignedEmployeeId: "u-dana", completedAt: today },
+  { id: "task-c2", jobId: "j-2001", title: "Install cabinet boxes", status: "completed", order: 1, assignedEmployeeId: "u-dana", completedAt: today },
   { id: "task-c3", jobId: "j-2001", title: "Install doors & hardware", status: "pending", order: 2, assignedEmployeeId: "u-dana" },
   { id: "task-c4", jobId: "j-2001", title: "Final adjustment & cleanup", status: "pending", order: 3, assignedEmployeeId: null },
-  { id: "task-c5", jobId: "j-2001", title: "Sink & fixture install", status: "completed", order: 4, assignedEmployeeId: "u-sam" },
+  { id: "task-c5", jobId: "j-2001", title: "Sink & fixture install", status: "completed", order: 4, assignedEmployeeId: "u-sam", completedAt: today },
 
   // j-2006 Living room trim & paint — from "Baseboard replacement" + "Interior wall paint"
-  { id: "task-t1", jobId: "j-2006", title: "Remove old trim", status: "completed", order: 0, assignedEmployeeId: "u-dana" },
-  { id: "task-t2", jobId: "j-2006", title: "Fill nail holes & caulk gaps", status: "completed", order: 1, assignedEmployeeId: "u-dana" },
+  { id: "task-t1", jobId: "j-2006", title: "Remove old trim", status: "completed", order: 0, assignedEmployeeId: "u-dana", completedAt: today },
+  { id: "task-t2", jobId: "j-2006", title: "Fill nail holes & caulk gaps", status: "completed", order: 1, assignedEmployeeId: "u-dana", completedAt: today },
   { id: "task-t3", jobId: "j-2006", title: "Install new trim", status: "in_progress", order: 2, assignedEmployeeId: "u-dana" },
   { id: "task-t4", jobId: "j-2006", title: "Caulk & touch up", status: "pending", order: 3, assignedEmployeeId: "u-dana" },
   { id: "task-t5", jobId: "j-2006", title: "Paint/finish trim", status: "pending", order: 4, assignedEmployeeId: null },
-  { id: "task-t6", jobId: "j-2006", title: "Prep & protect surfaces", status: "completed", order: 5, assignedEmployeeId: "u-sam" },
+  { id: "task-t6", jobId: "j-2006", title: "Prep & protect surfaces", status: "completed", order: 5, assignedEmployeeId: "u-sam", completedAt: today },
   { id: "task-t7", jobId: "j-2006", title: "Patch and sand", status: "in_progress", order: 6, assignedEmployeeId: "u-sam" },
   { id: "task-t8", jobId: "j-2006", title: "Prime", status: "pending", order: 7, assignedEmployeeId: "u-sam" },
   { id: "task-t9", jobId: "j-2006", title: "Paint - coat 1", status: "pending", order: 8, assignedEmployeeId: null },
   { id: "task-t10", jobId: "j-2006", title: "Paint - coat 2", status: "pending", order: 9, assignedEmployeeId: null },
   { id: "task-t11", jobId: "j-2006", title: "Clean up", status: "pending", order: 10, assignedEmployeeId: null },
+
+  // h-2007 Trim replacement - Unit 4 (Aug 18-19) — first data point for the trim trend
+  { id: "task-h7-1", jobId: "h-2007", title: "Remove old trim", status: "completed", order: 0, assignedEmployeeId: "u-dana", completedAt: "2026-08-18" },
+  { id: "task-h7-2", jobId: "h-2007", title: "Fill nail holes & caulk gaps", status: "completed", order: 1, assignedEmployeeId: "u-dana", completedAt: "2026-08-18" },
+  { id: "task-h7-3", jobId: "h-2007", title: "Install new trim", status: "completed", order: 2, assignedEmployeeId: "u-dana", completedAt: "2026-08-19" },
+  { id: "task-h7-4", jobId: "h-2007", title: "Caulk & touch up", status: "completed", order: 3, assignedEmployeeId: "u-sam", completedAt: "2026-08-19" },
+  { id: "task-h7-5", jobId: "h-2007", title: "Paint/finish trim", status: "completed", order: 4, assignedEmployeeId: "u-sam", completedAt: "2026-08-19" },
+
+  // h-2008 Guest room paint refresh (Aug 20-21) — first data point for the paint trend
+  { id: "task-h8-1", jobId: "h-2008", title: "Prep & protect surfaces", status: "completed", order: 0, assignedEmployeeId: "u-sam", completedAt: "2026-08-20" },
+  { id: "task-h8-2", jobId: "h-2008", title: "Patch and sand", status: "completed", order: 1, assignedEmployeeId: "u-sam", completedAt: "2026-08-20" },
+  { id: "task-h8-3", jobId: "h-2008", title: "Prime", status: "completed", order: 2, assignedEmployeeId: "u-chris", completedAt: "2026-08-20" },
+  { id: "task-h8-4", jobId: "h-2008", title: "Paint - coat 1", status: "completed", order: 3, assignedEmployeeId: "u-chris", completedAt: "2026-08-21" },
+  { id: "task-h8-5", jobId: "h-2008", title: "Paint - coat 2", status: "completed", order: 4, assignedEmployeeId: "u-chris", completedAt: "2026-08-21" },
+  { id: "task-h8-6", jobId: "h-2008", title: "Clean up", status: "completed", order: 5, assignedEmployeeId: "u-sam", completedAt: "2026-08-21" },
+
+  // h-2009 Cabinet refresh - break room (Aug 25-26)
+  { id: "task-h9-1", jobId: "h-2009", title: "Remove old cabinets", status: "completed", order: 0, assignedEmployeeId: "u-dana", completedAt: "2026-08-25" },
+  { id: "task-h9-2", jobId: "h-2009", title: "Install cabinet boxes", status: "completed", order: 1, assignedEmployeeId: "u-dana", completedAt: "2026-08-26" },
+  { id: "task-h9-3", jobId: "h-2009", title: "Install doors & hardware", status: "completed", order: 2, assignedEmployeeId: "u-sam", completedAt: "2026-08-26" },
+  { id: "task-h9-4", jobId: "h-2009", title: "Final adjustment & cleanup", status: "completed", order: 3, assignedEmployeeId: "u-sam", completedAt: "2026-08-26" },
+
+  // h-2010 Trim replacement - Unit 7 (Aug 27-28) — second, faster data point for the trim trend
+  { id: "task-h10-1", jobId: "h-2010", title: "Remove old trim", status: "completed", order: 0, assignedEmployeeId: "u-dana", completedAt: "2026-08-27" },
+  { id: "task-h10-2", jobId: "h-2010", title: "Fill nail holes & caulk gaps", status: "completed", order: 1, assignedEmployeeId: "u-dana", completedAt: "2026-08-27" },
+  { id: "task-h10-3", jobId: "h-2010", title: "Install new trim", status: "completed", order: 2, assignedEmployeeId: "u-dana", completedAt: "2026-08-27" },
+  { id: "task-h10-4", jobId: "h-2010", title: "Caulk & touch up", status: "completed", order: 3, assignedEmployeeId: "u-sam", completedAt: "2026-08-28" },
+  { id: "task-h10-5", jobId: "h-2010", title: "Paint/finish trim", status: "completed", order: 4, assignedEmployeeId: "u-sam", completedAt: "2026-08-28" },
+
+  // h-2011 Unit turnover paint - Unit 9 (Sep 2-3) — second, faster data point for the paint trend
+  { id: "task-h11-1", jobId: "h-2011", title: "Prep & protect surfaces", status: "completed", order: 0, assignedEmployeeId: "u-sam", completedAt: "2026-09-02" },
+  { id: "task-h11-2", jobId: "h-2011", title: "Patch and sand", status: "completed", order: 1, assignedEmployeeId: "u-sam", completedAt: "2026-09-02" },
+  { id: "task-h11-3", jobId: "h-2011", title: "Prime", status: "completed", order: 2, assignedEmployeeId: "u-chris", completedAt: "2026-09-02" },
+  { id: "task-h11-4", jobId: "h-2011", title: "Paint - coat 1", status: "completed", order: 3, assignedEmployeeId: "u-chris", completedAt: "2026-09-02" },
+  { id: "task-h11-5", jobId: "h-2011", title: "Paint - coat 2", status: "completed", order: 4, assignedEmployeeId: "u-chris", completedAt: "2026-09-02" },
+  { id: "task-h11-6", jobId: "h-2011", title: "Clean up", status: "completed", order: 5, assignedEmployeeId: "u-sam", completedAt: "2026-09-03" },
+
+  // h-2012 Outlet & panel check (Sep 4) — gives Chris some non-paint task history.
+  // Scheduled a day after h-2011 so Chris's entries don't collide with his
+  // existing j-2003 entry on Sep 3.
+  { id: "task-h12-1", jobId: "h-2012", title: "Shut off power & prep", status: "completed", order: 0, assignedEmployeeId: "u-chris", completedAt: "2026-09-04" },
+  { id: "task-h12-2", jobId: "h-2012", title: "Rough-in wiring", status: "completed", order: 1, assignedEmployeeId: "u-chris", completedAt: "2026-09-04" },
+  { id: "task-h12-3", jobId: "h-2012", title: "Install fixtures/devices", status: "completed", order: 2, assignedEmployeeId: "u-chris", completedAt: "2026-09-04" },
+  { id: "task-h12-4", jobId: "h-2012", title: "Test & inspect", status: "completed", order: 3, assignedEmployeeId: "u-chris", completedAt: "2026-09-04" },
 ];
 
-export const timeEntries: TimeEntry[] = [
+const currentTimeEntries: TimeEntry[] = [
   {
     id: "t-1",
     employeeId: "u-dana",
@@ -486,6 +586,71 @@ export const timeEntries: TimeEntry[] = [
     clockOut: null,
   },
 ];
+
+
+// [id, employeeId, jobId, taskId, date, clockInTime, clockOutTime|null] — the
+// three weeks of completed-job history behind the Analytics page. Concise
+// tuples because this is ~30 rows of otherwise-repetitive TimeEntry objects.
+type HistorySeed = [string, string, string, string, string, string, string | null];
+
+const historySeeds: HistorySeed[] = [
+  // Missing entry for the kitchen job's first task (added after the fact).
+  ["t-11", "u-dana", "j-2001", "task-c1", today, "06:40", "07:00"],
+
+  // h-2007 Trim replacement - Unit 4 (Aug 18-19)
+  ["t-h7-1", "u-dana", "h-2007", "task-h7-1", "2026-08-18", "08:00", "08:50"],
+  ["t-h7-2", "u-dana", "h-2007", "task-h7-2", "2026-08-18", "08:50", "09:35"],
+  ["t-h7-3", "u-dana", "h-2007", "task-h7-3", "2026-08-19", "08:00", "10:50"],
+  ["t-h7-4", "u-sam", "h-2007", "task-h7-4", "2026-08-19", "08:00", "08:40"],
+  ["t-h7-5", "u-sam", "h-2007", "task-h7-5", "2026-08-19", "08:40", "09:40"],
+
+  // h-2008 Guest room paint refresh (Aug 20-21)
+  ["t-h8-1", "u-sam", "h-2008", "task-h8-1", "2026-08-20", "08:00", "08:50"],
+  ["t-h8-2", "u-sam", "h-2008", "task-h8-2", "2026-08-20", "08:50", "09:45"],
+  ["t-h8-3", "u-chris", "h-2008", "task-h8-3", "2026-08-20", "09:45", "10:25"],
+  ["t-h8-4", "u-chris", "h-2008", "task-h8-4", "2026-08-21", "08:00", "09:40"],
+  ["t-h8-5", "u-chris", "h-2008", "task-h8-5", "2026-08-21", "09:40", "11:10"],
+  ["t-h8-6", "u-sam", "h-2008", "task-h8-6", "2026-08-21", "11:10", "11:35"],
+
+  // h-2009 Cabinet refresh - break room (Aug 25-26)
+  ["t-h9-1", "u-dana", "h-2009", "task-h9-1", "2026-08-25", "08:00", "09:00"],
+  ["t-h9-2", "u-dana", "h-2009", "task-h9-2", "2026-08-26", "08:00", "10:20"],
+  ["t-h9-3", "u-sam", "h-2009", "task-h9-3", "2026-08-26", "10:20", "11:35"],
+  ["t-h9-4", "u-sam", "h-2009", "task-h9-4", "2026-08-26", "11:35", "12:05"],
+
+  // h-2010 Trim replacement - Unit 7 (Aug 27-28) — faster than h-2007
+  ["t-h10-1", "u-dana", "h-2010", "task-h10-1", "2026-08-27", "08:00", "08:35"],
+  ["t-h10-2", "u-dana", "h-2010", "task-h10-2", "2026-08-27", "08:35", "09:15"],
+  ["t-h10-3", "u-dana", "h-2010", "task-h10-3", "2026-08-27", "09:15", "11:25"],
+  ["t-h10-4", "u-sam", "h-2010", "task-h10-4", "2026-08-28", "08:00", "08:30"],
+  ["t-h10-5", "u-sam", "h-2010", "task-h10-5", "2026-08-28", "08:30", "09:20"],
+
+  // h-2011 Unit turnover paint - Unit 9 (Sep 2-3) — faster than h-2008
+  ["t-h11-1", "u-sam", "h-2011", "task-h11-1", "2026-09-02", "08:00", "08:40"],
+  ["t-h11-2", "u-sam", "h-2011", "task-h11-2", "2026-09-02", "08:40", "09:25"],
+  ["t-h11-3", "u-chris", "h-2011", "task-h11-3", "2026-09-02", "10:00", "10:35"],
+  ["t-h11-4", "u-chris", "h-2011", "task-h11-4", "2026-09-02", "10:35", "11:50"],
+  ["t-h11-5", "u-chris", "h-2011", "task-h11-5", "2026-09-02", "11:50", "13:00"],
+  ["t-h11-6", "u-sam", "h-2011", "task-h11-6", "2026-09-03", "08:00", "08:20"],
+
+  // h-2012 Outlet & panel check (Sep 4)
+  ["t-h12-1", "u-chris", "h-2012", "task-h12-1", "2026-09-04", "07:30", "07:50"],
+  ["t-h12-2", "u-chris", "h-2012", "task-h12-2", "2026-09-04", "07:50", "08:50"],
+  ["t-h12-3", "u-chris", "h-2012", "task-h12-3", "2026-09-04", "08:50", "09:35"],
+  ["t-h12-4", "u-chris", "h-2012", "task-h12-4", "2026-09-04", "09:35", "09:55"],
+];
+
+const historicalTimeEntries: TimeEntry[] = historySeeds.map(([id, employeeId, jobId, taskId, date, inTime, outTime]) => ({
+  id,
+  employeeId,
+  jobId,
+  taskId,
+  date,
+  clockIn: `${date}T${inTime}:00`,
+  clockOut: outTime ? `${date}T${outTime}:00` : null,
+}));
+
+export const timeEntries: TimeEntry[] = [...currentTimeEntries, ...historicalTimeEntries];
 
 export const callLogs: CallLog[] = [
   {
