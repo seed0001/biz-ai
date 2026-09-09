@@ -237,7 +237,6 @@ export const quotes: Quote[] = [
     customerId: "c-1",
     status: "accepted",
     createdAt: "2026-08-20",
-    jobId: "j-2001",
     lineItems: [
       { id: "li-1", name: "Cabinet installation", category: "Labor", unit: "hour", quantity: 24, materialCost: 0, laborHours: 1 },
       { id: "li-2", name: "Quartz countertop slab", category: "Materials", unit: "each", quantity: 1, materialCost: 3200, laborHours: 0, catalogId: "cat-1" },
@@ -250,7 +249,6 @@ export const quotes: Quote[] = [
     customerId: "c-2",
     status: "accepted",
     createdAt: "2026-08-25",
-    jobId: "j-2002",
     lineItems: [
       { id: "li-4", name: "Framing & demo", category: "Labor", unit: "hour", quantity: 30, materialCost: 0, laborHours: 1 },
       { id: "li-5", name: "Pressure-treated decking boards", category: "Materials", unit: "each", quantity: 1, materialCost: 2100, laborHours: 0, catalogId: "cat-2" },
@@ -296,7 +294,6 @@ export const quotes: Quote[] = [
     customerId: "c-6",
     status: "accepted",
     createdAt: "2026-09-01",
-    jobId: "j-2006",
     lineItems: [
       { id: "li-13", name: "Baseboard replacement", category: "Labor", unit: "hour", quantity: 10, materialCost: 0, laborHours: 1 },
       { id: "li-14", name: "Framing lumber & fasteners", category: "Materials", unit: "package", quantity: 1, materialCost: 210, laborHours: 0, catalogId: "cat-6" },

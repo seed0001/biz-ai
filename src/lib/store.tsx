@@ -1,28 +1,8 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import {
-  users as seedUsers,
-  customers as seedCustomers,
-  jobs as seedJobs,
-  quotes as seedQuotes,
-  timeEntries as seedTimeEntries,
-  callLogs as seedCallLogs,
-  catalog as seedCatalog,
-  jobTasks as seedJobTasks,
-  defaultSettings,
-} from "./mock-data";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import type {
   User,
-  Customer,
-  Job,
   JobStatus,
   JobTask,
   TaskStatus,
@@ -34,42 +14,15 @@ import type {
   CatalogItem,
   CompanySettings,
 } from "./types";
+import type { TenantSnapshot } from "./tenant-data";
 import { suggestTasksForLineItem } from "./task-templates";
 import { applyAiAction, type AiAction, type AiActionResult } from "./ai-actions";
+import * as actions from "./actions/data";
 
-interface AppState {
-  users: User[];
-  customers: Customer[];
-  jobs: Job[];
-  quotes: Quote[];
-  timeEntries: TimeEntry[];
-  callLogs: CallLog[];
-  catalog: CatalogItem[];
-  jobTasks: JobTask[];
-  settings: CompanySettings;
-  currentUserId: string;
-}
+const EMPLOYEE_COLORS = ["#2563eb", "#059669", "#d97706", "#7c3aed", "#db2777", "#0891b2"];
 
-const STORAGE_KEY = "biz-ai-demo-state-v4";
-
-function loadInitialState(): AppState {
-  return {
-    users: seedUsers,
-    customers: seedCustomers,
-    jobs: seedJobs,
-    quotes: seedQuotes,
-    timeEntries: seedTimeEntries,
-    callLogs: seedCallLogs,
-    catalog: seedCatalog,
-    jobTasks: seedJobTasks,
-    settings: defaultSettings,
-    currentUserId: seedUsers[0].id,
-  };
-}
-
-interface AppContextValue extends AppState {
+interface AppContextValue extends TenantSnapshot {
   currentUser: User;
-  setCurrentUserId: (id: string) => void;
   clockIn: (employeeId: string, jobId: string | null, taskId?: string | null) => void;
   clockOut: (employeeId: string) => void;
   addTask: (
@@ -106,60 +59,40 @@ interface AppContextValue extends AppState {
   addCallLog: (input: Omit<CallLog, "id">) => string;
   updateSettings: (patch: Partial<CompanySettings>) => void;
   runAiAction: (action: AiAction) => AiActionResult;
-  resetDemoData: () => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-const COLORS = ["#2563eb", "#059669", "#d97706", "#7c3aed", "#db2777", "#0891b2"];
+function newId(): string {
+  return crypto.randomUUID();
+}
 
-export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AppState>(() => loadInitialState());
-  const [hydrated, setHydrated] = useState(false);
+export function AppProvider({
+  initialData,
+  currentUserId,
+  children,
+}: {
+  initialData: TenantSnapshot;
+  currentUserId: string;
+  children: React.ReactNode;
+}) {
+  const [state, setState] = useState<TenantSnapshot>(initialData);
+  const lineItemTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        setState(JSON.parse(raw));
-      }
-    } catch {
-      // ignore corrupt storage
-    }
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      // ignore quota errors
-    }
-  }, [state, hydrated]);
-
-  const setCurrentUserId = useCallback((id: string) => {
-    setState((s) => ({ ...s, currentUserId: id }));
-  }, []);
+  const currentUser = useMemo(
+    () => state.users.find((u) => u.id === currentUserId) ?? state.users[0],
+    [state.users, currentUserId]
+  );
 
   const clockIn = useCallback((employeeId: string, jobId: string | null, taskId: string | null = null) => {
+    const id = newId();
+    const now = new Date().toISOString();
     setState((s) => {
-      const now = new Date().toISOString();
-      // Only one active timer per employee — starting a new one closes
-      // whatever they were previously clocked into.
-      const timeEntries = [
+      const timeEntries: TimeEntry[] = [
         ...s.timeEntries.map((t) =>
           t.employeeId === employeeId && t.clockOut === null ? { ...t, clockOut: now } : t
         ),
-        {
-          id: `t-${Date.now()}`,
-          employeeId,
-          jobId,
-          taskId,
-          date: now.slice(0, 10),
-          clockIn: now,
-          clockOut: null,
-        },
+        { id, employeeId, jobId, taskId, date: now.slice(0, 10), clockIn: now, clockOut: null },
       ];
       const jobTasks = taskId
         ? s.jobTasks.map((task) =>
@@ -168,29 +101,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         : s.jobTasks;
       return { ...s, timeEntries, jobTasks };
     });
+    actions.clockInAction({ id, employeeId, jobId, taskId }).catch(console.error);
   }, []);
 
   const clockOut = useCallback((employeeId: string) => {
+    const now = new Date().toISOString();
     setState((s) => ({
       ...s,
       timeEntries: s.timeEntries.map((t) =>
-        t.employeeId === employeeId && t.clockOut === null
-          ? { ...t, clockOut: new Date().toISOString() }
-          : t
+        t.employeeId === employeeId && t.clockOut === null ? { ...t, clockOut: now } : t
       ),
     }));
-  }, []);
-
-  const updateJobStatus = useCallback((jobId: string, status: JobStatus) => {
-    setState((s) => ({
-      ...s,
-      jobs: s.jobs.map((j) => (j.id === jobId ? { ...j, status } : j)),
-    }));
+    actions.clockOutAction(employeeId).catch(console.error);
   }, []);
 
   const addTask = useCallback(
     (jobId: string, input: { title: string; estimatedMinutes?: number; assignedEmployeeId?: string | null }) => {
-      const id = `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const id = newId();
       setState((s) => {
         const order = s.jobTasks.filter((t) => t.jobId === jobId).length;
         return {
@@ -209,9 +136,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ],
         };
       });
+      const order = state.jobTasks.filter((t) => t.jobId === jobId).length;
+      actions
+        .addTaskAction({
+          id,
+          jobId,
+          title: input.title,
+          order,
+          estimatedMinutes: input.estimatedMinutes,
+          assignedEmployeeId: input.assignedEmployeeId,
+        })
+        .catch(console.error);
       return id;
     },
-    []
+    [state.jobTasks]
   );
 
   const updateTaskStatus = useCallback((taskId: string, status: TaskStatus) => {
@@ -219,14 +157,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...s,
       jobTasks: s.jobTasks.map((t) =>
         t.id === taskId
-          ? {
-              ...t,
-              status,
-              completedAt: status === "completed" ? new Date().toISOString().slice(0, 10) : undefined,
-            }
+          ? { ...t, status, completedAt: status === "completed" ? new Date().toISOString().slice(0, 10) : undefined }
           : t
       ),
     }));
+    actions.updateTaskStatusAction(taskId, status).catch(console.error);
   }, []);
 
   const updateTask = useCallback(
@@ -235,57 +170,60 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...s,
         jobTasks: s.jobTasks.map((t) => (t.id === taskId ? { ...t, ...patch } : t)),
       }));
+      actions.updateTaskAction(taskId, patch).catch(console.error);
     },
     []
   );
 
   const deleteTask = useCallback((taskId: string) => {
     setState((s) => ({ ...s, jobTasks: s.jobTasks.filter((t) => t.id !== taskId) }));
+    actions.deleteTaskAction(taskId).catch(console.error);
   }, []);
 
-  // Expands each labor line item on the linked quote into its default step
-  // checklist (see task-templates.ts). Material line items are cost, not
-  // steps, so they're skipped.
-  const generateTasksFromQuote = useCallback((jobId: string, quoteId: string) => {
-    setState((s) => {
-      const quote = s.quotes.find((q) => q.id === quoteId);
-      if (!quote) return s;
-      let order = s.jobTasks.filter((t) => t.jobId === jobId).length;
+  const generateTasksFromQuote = useCallback(
+    (jobId: string, quoteId: string) => {
+      const quote = state.quotes.find((q) => q.id === quoteId);
+      if (!quote) return;
+      let order = state.jobTasks.filter((t) => t.jobId === jobId).length;
       const newTasks: JobTask[] = [];
       quote.lineItems
         .filter((item) => item.laborHours > 0)
         .forEach((item) => {
           suggestTasksForLineItem(item).forEach((title) => {
-            newTasks.push({
-              id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-              jobId,
-              title,
-              status: "pending",
-              order: order++,
-              assignedEmployeeId: null,
-            });
+            newTasks.push({ id: newId(), jobId, title, status: "pending", order: order++, assignedEmployeeId: null });
           });
         });
-      return { ...s, jobTasks: [...s.jobTasks, ...newTasks] };
-    });
+      if (newTasks.length === 0) return;
+      setState((s) => ({ ...s, jobTasks: [...s.jobTasks, ...newTasks] }));
+      actions
+        .createJobTasksAction(
+          jobId,
+          newTasks.map((t) => ({ id: t.id, title: t.title, order: t.order }))
+        )
+        .catch(console.error);
+    },
+    [state.quotes, state.jobTasks]
+  );
+
+  const updateJobStatus = useCallback((jobId: string, status: JobStatus) => {
+    setState((s) => ({ ...s, jobs: s.jobs.map((j) => (j.id === jobId ? { ...j, status } : j)) }));
+    actions.updateJobStatusAction(jobId, status).catch(console.error);
   }, []);
 
   const addEmployee = useCallback(
     (input: { name: string; title: string; phone: string; email: string }) => {
-      setState((s) => ({
-        ...s,
-        users: [
-          ...s.users,
-          {
-            id: `u-${Date.now()}`,
-            role: "employee",
-            color: COLORS[s.users.length % COLORS.length],
-            ...input,
-          },
-        ],
-      }));
+      const id = newId();
+      setState((s) => {
+        const color = EMPLOYEE_COLORS[s.users.length % EMPLOYEE_COLORS.length];
+        return {
+          ...s,
+          users: [...s.users, { id, role: "employee", color, ...input }],
+        };
+      });
+      const color = EMPLOYEE_COLORS[state.users.length % EMPLOYEE_COLORS.length];
+      actions.addEmployeeAction({ id, color, ...input }).catch(console.error);
     },
-    []
+    [state.users.length]
   );
 
   const addJob = useCallback(
@@ -296,98 +234,79 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       assignedEmployeeIds: string[];
       notes: string;
     }) => {
-      const id = `j-${Date.now()}`;
-      setState((s) => ({
-        ...s,
-        jobs: [
-          ...s.jobs,
-          {
-            id,
-            status: "scheduled",
-            ...input,
-          },
-        ],
-      }));
+      const id = newId();
+      setState((s) => ({ ...s, jobs: [...s.jobs, { id, status: "scheduled", ...input }] }));
+      actions.addJobAction({ id, ...input }).catch(console.error);
       return id;
     },
     []
   );
 
   const updateQuoteStatus = useCallback((quoteId: string, status: QuoteStatus) => {
-    setState((s) => ({
-      ...s,
-      quotes: s.quotes.map((q) => (q.id === quoteId ? { ...q, status } : q)),
-    }));
+    setState((s) => ({ ...s, quotes: s.quotes.map((q) => (q.id === quoteId ? { ...q, status } : q)) }));
+    actions.updateQuoteStatusAction(quoteId, status).catch(console.error);
   }, []);
 
-  const updateQuoteLineItems = useCallback(
-    (quoteId: string, lineItems: QuoteLineItem[]) => {
-      setState((s) => ({
-        ...s,
-        quotes: s.quotes.map((q) => (q.id === quoteId ? { ...q, lineItems } : q)),
-      }));
-    },
-    []
-  );
+  const updateQuoteLineItems = useCallback((quoteId: string, lineItems: QuoteLineItem[]) => {
+    setState((s) => ({ ...s, quotes: s.quotes.map((q) => (q.id === quoteId ? { ...q, lineItems } : q)) }));
+    // Debounced: this fires on every keystroke in the line-item table, so
+    // batch rapid edits into one persist instead of a write per character.
+    const timers = lineItemTimers.current;
+    clearTimeout(timers.get(quoteId));
+    timers.set(
+      quoteId,
+      setTimeout(() => {
+        actions.updateQuoteLineItemsAction(quoteId, lineItems).catch(console.error);
+      }, 600)
+    );
+  }, []);
 
   const updateQuoteRates = useCallback(
     (quoteId: string, patch: Partial<Pick<Quote, "laborRate" | "markupPercent" | "taxPercent">>) => {
-      setState((s) => ({
-        ...s,
-        quotes: s.quotes.map((q) => (q.id === quoteId ? { ...q, ...patch } : q)),
-      }));
+      setState((s) => ({ ...s, quotes: s.quotes.map((q) => (q.id === quoteId ? { ...q, ...patch } : q)) }));
+      actions.updateQuoteRatesAction(quoteId, patch).catch(console.error);
     },
     []
   );
 
   const addQuote = useCallback((input: { title: string; customerId: string }) => {
-    const id = `q-${Date.now()}`;
+    const id = newId();
     setState((s) => ({
       ...s,
       quotes: [
         ...s.quotes,
-        {
-          id,
-          title: input.title,
-          customerId: input.customerId,
-          status: "draft",
-          createdAt: new Date().toISOString().slice(0, 10),
-          lineItems: [],
-        },
+        { id, title: input.title, customerId: input.customerId, status: "draft", createdAt: new Date().toISOString().slice(0, 10), lineItems: [] },
       ],
     }));
+    actions.addQuoteAction({ id, ...input }).catch(console.error);
     return id;
   }, []);
 
   const addCatalogItem = useCallback((input: Omit<CatalogItem, "id">) => {
-    const id = `cat-${Date.now()}`;
+    const id = newId();
     setState((s) => ({ ...s, catalog: [...s.catalog, { id, ...input }] }));
+    actions.addCatalogItemAction({ id, ...input }).catch(console.error);
     return id;
   }, []);
 
-  const updateCatalogItem = useCallback(
-    (id: string, patch: Partial<Omit<CatalogItem, "id">>) => {
-      setState((s) => ({
-        ...s,
-        catalog: s.catalog.map((c) => (c.id === id ? { ...c, ...patch } : c)),
-      }));
-    },
-    []
-  );
+  const updateCatalogItem = useCallback((id: string, patch: Partial<Omit<CatalogItem, "id">>) => {
+    setState((s) => ({ ...s, catalog: s.catalog.map((c) => (c.id === id ? { ...c, ...patch } : c)) }));
+    actions.updateCatalogItemAction(id, patch).catch(console.error);
+  }, []);
 
   const deleteCatalogItem = useCallback((id: string) => {
     setState((s) => ({ ...s, catalog: s.catalog.filter((c) => c.id !== id) }));
+    actions.deleteCatalogItemAction(id).catch(console.error);
   }, []);
 
-  // Mirrors quote-ai's ADD_QUOTE_ITEM-with-catalogId action: the catalog stays
-  // the authoritative source for name/unit/category/price on that line.
   const addQuoteItemFromCatalog = useCallback(
     (quoteId: string, catalogId: string, quantity = 1) => {
+      const id = newId();
       setState((s) => {
         const item = s.catalog.find((c) => c.id === catalogId);
         if (!item) return s;
         const newLine: QuoteLineItem = {
-          id: `li-${Date.now()}`,
+          id,
           name: item.name,
           category: item.category,
           unit: item.unit,
@@ -398,27 +317,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
         return {
           ...s,
-          quotes: s.quotes.map((q) =>
-            q.id === quoteId ? { ...q, lineItems: [...q.lineItems, newLine] } : q
-          ),
+          quotes: s.quotes.map((q) => (q.id === quoteId ? { ...q, lineItems: [...q.lineItems, newLine] } : q)),
         };
       });
+      actions.addQuoteItemFromCatalogAction({ id, quoteId, catalogId, quantity }).catch(console.error);
     },
     []
   );
 
-  const updateSettings = useCallback((patch: Partial<CompanySettings>) => {
-    setState((s) => ({ ...s, settings: { ...s.settings, ...patch } }));
-  }, []);
-
   const addCallLog = useCallback((input: Omit<CallLog, "id">) => {
-    const id = `call-${Date.now()}`;
+    const id = newId();
     setState((s) => ({ ...s, callLogs: [{ id, ...input }, ...s.callLogs] }));
+    actions.addCallLogAction({ id, ...input }).catch(console.error);
     return id;
   }, []);
 
-  // The single entry point an AI agent (quoting assistant, phone/text line)
-  // would call — see src/lib/ai-actions.ts for the full action contract.
+  const updateSettings = useCallback((patch: Partial<CompanySettings>) => {
+    setState((s) => ({ ...s, settings: { ...s.settings, ...patch } }));
+    actions.updateSettingsAction(patch).catch(console.error);
+  }, []);
+
   const runAiAction = useCallback(
     (action: AiAction) =>
       applyAiAction(
@@ -462,24 +380,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     ]
   );
 
-  const resetDemoData = useCallback(() => {
-    setState(loadInitialState());
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const currentUser = useMemo(
-    () => state.users.find((u) => u.id === state.currentUserId) ?? state.users[0],
-    [state.users, state.currentUserId]
-  );
-
   const value: AppContextValue = {
     ...state,
     currentUser,
-    setCurrentUserId,
     clockIn,
     clockOut,
     addTask,
@@ -501,7 +404,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addCallLog,
     updateSettings,
     runAiAction,
-    resetDemoData,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

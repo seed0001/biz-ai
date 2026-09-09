@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AI_ACTION_SCHEMA_PROMPT } from "@/lib/ai-actions";
+import { decrypt, getSessionCookie } from "@/lib/session";
 
 // Server-only: talks to OpenRouter with the API key from the environment.
 // The browser never sees the key — it POSTs a message + a compact snapshot
@@ -50,6 +51,11 @@ async function callOpenRouter(apiKey: string, model: string, systemPrompt: strin
 }
 
 export async function POST(req: NextRequest) {
+  const session = await decrypt(await getSessionCookie());
+  if (!session?.userId) {
+    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  }
+
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     return NextResponse.json(

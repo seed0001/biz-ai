@@ -17,12 +17,12 @@ import {
   Menu,
   X,
   ChevronDown,
-  RotateCcw,
+  LogOut,
 } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { Avatar } from "./ui";
 import { AiAssistant } from "./AiAssistant";
-import { COMPANY_NAME } from "@/lib/mock-data";
+import { logout } from "@/lib/actions/auth";
 
 interface NavItem {
   href: string;
@@ -49,10 +49,10 @@ const MOBILE_ITEMS_OWNER = ["/", "/jobs", "/quotes", "/ai-line"];
 const MOBILE_ITEMS_EMPLOYEE = ["/", "/jobs", "/time", "/schedule"];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { currentUser, users, setCurrentUserId, resetDemoData } = useApp();
+  const { currentUser, settings } = useApp();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const isOwner = currentUser.role === "owner";
   const visibleNav = NAV_ITEMS.filter((item) => !item.ownerOnly || isOwner);
@@ -67,7 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white">
             IC
           </div>
-          <span className="truncate text-sm font-semibold text-slate-900">{COMPANY_NAME}</span>
+          <span className="truncate text-sm font-semibold text-slate-900">{settings.companyName}</span>
         </div>
         <nav className="flex-1 space-y-1 px-3 py-4">
           {visibleNav.map((item) => {
@@ -86,15 +86,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <div className="border-t border-slate-200 p-3">
-          <button
-            onClick={resetDemoData}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-          >
-            <RotateCcw size={14} />
-            Reset demo data
-          </button>
-        </div>
       </aside>
 
       {/* Mobile menu drawer */}
@@ -103,7 +94,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="absolute inset-0 bg-black/30" onClick={() => setMobileMenuOpen(false)} />
           <div className="absolute left-0 top-0 h-full w-64 bg-white p-4 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm font-semibold text-slate-900">{COMPANY_NAME}</span>
+              <span className="text-sm font-semibold text-slate-900">{settings.companyName}</span>
               <button onClick={() => setMobileMenuOpen(false)} className="p-1 text-slate-500">
                 <X size={20} />
               </button>
@@ -125,13 +116,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   </Link>
                 );
               })}
-              <button
-                onClick={resetDemoData}
-                className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-400 hover:bg-slate-100"
-              >
-                <RotateCcw size={14} />
-                Reset demo data
-              </button>
             </nav>
           </div>
         </div>
@@ -153,53 +137,39 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2">
-          <AiAssistant />
-          {/* Role switcher - stands in for real auth in this prototype */}
-          <div className="relative">
-            <button
-              onClick={() => setSwitcherOpen((v) => !v)}
-              className="flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-1.5 hover:bg-slate-50"
-            >
-              <Avatar name={currentUser.name} color={currentUser.color} size={28} />
-              <span className="hidden text-left sm:block">
-                <span className="block text-sm font-medium leading-tight text-slate-900">
-                  {currentUser.name}
+            <AiAssistant />
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                className="flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-1.5 hover:bg-slate-50"
+              >
+                <Avatar name={currentUser.name} color={currentUser.color} size={28} />
+                <span className="hidden text-left sm:block">
+                  <span className="block text-sm font-medium leading-tight text-slate-900">{currentUser.name}</span>
+                  <span className="block text-xs leading-tight text-slate-500">{currentUser.title || currentUser.role}</span>
                 </span>
-                <span className="block text-xs leading-tight text-slate-500">{currentUser.title}</span>
-              </span>
-              <ChevronDown size={16} className="text-slate-400" />
-            </button>
-            {switcherOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setSwitcherOpen(false)} />
-                <div className="absolute right-0 z-20 mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-                  <div className="border-b border-slate-100 px-3 py-2 text-xs font-medium uppercase tracking-wide text-slate-400">
-                    View as
+                <ChevronDown size={16} className="text-slate-400" />
+              </button>
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                  <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                    <div className="border-b border-slate-100 px-3 py-2">
+                      <p className="truncate text-sm font-medium text-slate-900">{currentUser.name}</p>
+                      <p className="truncate text-xs text-slate-500">{currentUser.email}</p>
+                    </div>
+                    <form action={logout}>
+                      <button
+                        type="submit"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-50"
+                      >
+                        <LogOut size={15} /> Sign out
+                      </button>
+                    </form>
                   </div>
-                  {users.map((u) => (
-                    <button
-                      key={u.id}
-                      onClick={() => {
-                        setCurrentUserId(u.id);
-                        setSwitcherOpen(false);
-                      }}
-                      className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-slate-50 ${
-                        u.id === currentUser.id ? "bg-blue-50" : ""
-                      }`}
-                    >
-                      <Avatar name={u.name} color={u.color} size={28} />
-                      <span>
-                        <span className="block font-medium text-slate-900">{u.name}</span>
-                        <span className="block text-xs text-slate-500">
-                          {u.title} · {u.role === "owner" ? "Owner view" : "Employee view"}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
 

@@ -1,0 +1,254 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  owner
+  employee
+}
+
+enum JobStatus {
+  quoted
+  scheduled
+  in_progress
+  completed
+  invoiced
+}
+
+enum QuoteStatus {
+  draft
+  sent
+  accepted
+  declined
+}
+
+enum TaskStatus {
+  pending
+  in_progress
+  completed
+}
+
+enum CallChannel {
+  call
+  text
+}
+
+enum CallOutcome {
+  booked
+  message_taken
+  escalated
+  missed
+}
+
+enum AiHandoffRule {
+  urgent_only
+  on_request
+  never
+}
+
+enum LineItemCategory {
+  Labor
+  Materials
+}
+
+// One row per signed-up business. Every other model hangs off a tenant so
+// data from different companies never mixes.
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  users        User[]
+  customers    Customer[]
+  jobs         Job[]
+  jobTasks     JobTask[]
+  quotes       Quote[]
+  catalogItems CatalogItem[]
+  timeEntries  TimeEntry[]
+  callLogs     CallLog[]
+  settings     CompanySettings?
+}
+
+model User {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  title        String   @default("")
+  phone        String   @default("")
+  color        String
+  createdAt    DateTime @default(now())
+
+  jobsAssigned  Job[]       @relation("JobAssignees")
+  tasksAssigned JobTask[]   @relation("TaskAssignee")
+  timeEntries   TimeEntry[]
+
+  @@index([tenantId])
+}
+
+model Customer {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name     String
+  address  String @default("")
+  phone    String @default("")
+  email    String @default("")
+
+  jobs   Job[]
+  quotes Quote[]
+
+  @@index([tenantId])
+}
+
+model Job {
+  id             String    @id @default(cuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title          String
+  customerId     String
+  customer       Customer  @relation(fields: [customerId], references: [id])
+  status         JobStatus
+  scheduledDate  String
+  notes          String    @default("")
+  quoteId        String?   @unique
+  quote          Quote?    @relation(fields: [quoteId], references: [id])
+
+  assignedEmployees User[]      @relation("JobAssignees")
+  tasks             JobTask[]
+  timeEntries       TimeEntry[]
+
+  @@index([tenantId])
+}
+
+model JobTask {
+  id                 String     @id @default(cuid())
+  tenantId           String
+  tenant             Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  jobId              String
+  job                Job        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  title              String
+  status             TaskStatus @default(pending)
+  order              Int
+  estimatedMinutes   Int?
+  assignedEmployeeId String?
+  assignedEmployee   User?      @relation("TaskAssignee", fields: [assignedEmployeeId], references: [id])
+  completedAt        String?
+
+  timeEntries TimeEntry[]
+
+  @@index([tenantId])
+  @@index([jobId])
+}
+
+model Quote {
+  id            String      @id @default(cuid())
+  tenantId      String
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title         String
+  customerId    String
+  customer      Customer    @relation(fields: [customerId], references: [id])
+  status        QuoteStatus
+  createdAt     String
+  laborRate     Float?
+  markupPercent Float?
+  taxPercent    Float?
+
+  lineItems QuoteLineItem[]
+  job       Job? // reverse of Job.quoteId — the job this quote turned into, if any
+
+  @@index([tenantId])
+}
+
+model QuoteLineItem {
+  id            String            @id @default(cuid())
+  quoteId       String
+  quote         Quote             @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  name          String
+  category      String
+  unit          String
+  quantity      Float
+  materialCost  Float
+  laborHours    Float
+  catalogItemId String?
+  catalogItem   CatalogItem?      @relation(fields: [catalogItemId], references: [id])
+
+  @@index([quoteId])
+}
+
+model CatalogItem {
+  id          String  @id @default(cuid())
+  tenantId    String
+  tenant      Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  category    String
+  unit        String
+  price       Float
+  vendor      String  @default("")
+  description String  @default("")
+
+  lineItems QuoteLineItem[]
+
+  @@index([tenantId])
+}
+
+model TimeEntry {
+  id         String    @id @default(cuid())
+  tenantId   String
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employeeId String
+  employee   User      @relation(fields: [employeeId], references: [id])
+  jobId      String?
+  job        Job?      @relation(fields: [jobId], references: [id])
+  taskId     String?
+  task       JobTask?  @relation(fields: [taskId], references: [id])
+  date       String
+  clockIn    DateTime
+  clockOut   DateTime?
+
+  @@index([tenantId])
+  @@index([employeeId])
+}
+
+model CallLog {
+  id           String      @id @default(cuid())
+  tenantId     String
+  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customerName String
+  customerPhone String     @default("")
+  channel      CallChannel
+  startedAt    DateTime
+  durationSec  Int         @default(0)
+  outcome      CallOutcome
+  summary      String      @default("")
+  transcript   Json
+
+  @@index([tenantId])
+}
+
+model CompanySettings {
+  id                   String         @id @default(cuid())
+  tenantId             String         @unique
+  tenant               Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  companyName          String
+  address              String         @default("")
+  supportEmail         String         @default("")
+  defaultLaborRate     Float          @default(85)
+  defaultMarkupPercent Float          @default(20)
+  defaultTaxPercent    Float          @default(8.25)
+  businessType         String         @default("")
+  aiGreeting           String         @default("")
+  aiHandoffRule        AiHandoffRule  @default(urgent_only)
+  openRouterModel      String         @default("meta-llama/llama-3.3-70b-instruct:free")
+}

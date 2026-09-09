@@ -76,7 +76,6 @@ export interface Quote {
   status: QuoteStatus;
   createdAt: string;
   lineItems: QuoteLineItem[];
-  jobId?: string;
   // Per-quote overrides of the company defaults in CompanySettings.
   laborRate?: number;
   markupPercent?: number;
